@@ -6,16 +6,19 @@ window.VALTO_CONFIG = {
   email: "valtomateslp@gmail.com"
 };
 
-if (/\/admin\.html$/.test(location.pathname)) {
-  window.addEventListener('DOMContentLoaded', () => {
-    const load = (src, attr) => {
-      if (document.querySelector(`script[${attr}]`)) return;
-      const s = document.createElement('script');
-      s.src = src;
-      s.setAttribute(attr, '1');
-      document.body.appendChild(s);
-    };
+window.addEventListener('DOMContentLoaded', () => {
+  const load = (src, attr) => {
+    if (document.querySelector(`script[${attr}]`)) return;
+    const s = document.createElement('script');
+    s.src = src;
+    s.setAttribute(attr, '1');
+    document.body.appendChild(s);
+  };
+
+  if (/\/admin\.html$/.test(location.pathname)) {
     load('admin-live.js', 'data-admin-live');
     load('admin-commerce.js', 'data-admin-commerce');
-  });
-}
+  } else {
+    load('commerce-polish.js', 'data-commerce-polish');
+  }
+});
