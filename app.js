@@ -12,18 +12,21 @@
   let query = '';
   let sort = 'featured';
   let page = 1;
+  let currentModalProductId = '';
+  let initialized = false;
+  let commerceSignature = '';
   const pageSize = 8;
 
   const $ = (s) => document.querySelector(s);
   const $$ = (s) => [...document.querySelectorAll(s)];
   const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(Number(n || 0));
-  const esc = (s='') => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc = (s='') => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   const slug = (s='') => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
 
   function normalizeState(raw){
     const next = raw && typeof raw === 'object' ? raw : structuredClone(defaults);
     next.settings = {...structuredClone(defaults.settings), ...(next.settings || {})};
-    next.products = Array.isArray(next.products) ? next.products.map(p => ({...p, stock: Number.isFinite(Number(p.stock)) ? Number(p.stock) : 0})) : [];
+    next.products = Array.isArray(next.products) ? next.products.map(p => ({...p, stock: Number.isFinite(Number(p.stock)) ? Number(p.stock) : 0, variantLabel: p.variantLabel || 'Color'})) : [];
     if(!Array.isArray(next.categories) || !next.categories.length){
       const seen = new Set(); const inferred = [];
       const defaultByName = Object.fromEntries((defaults.categories || []).map(c => [c.name,c]));
@@ -39,28 +42,45 @@
 
   function iconSvg(id){ return (iconMap[id] || iconMap.tag || {svg:''}).svg; }
 
-  async function loadRemoteCommerce(){
-    if(!config.supabaseUrl || !config.supabaseAnonKey) return;
-    const headers = { apikey: config.supabaseAnonKey, Authorization: `Bearer ${config.supabaseAnonKey}` };
+  async function loadRemoteCommerce({silent=false} = {}){
+    if(!config.supabaseUrl || !config.supabaseAnonKey) return false;
+    const headers = { apikey: config.supabaseAnonKey };
     try{
       const [cr, pr] = await Promise.all([
-        fetch(`${config.supabaseUrl}/rest/v1/valto_categories?select=id,name,icon,sort_order&visible=eq.true&order=sort_order.asc`, {headers}),
-        fetch(`${config.supabaseUrl}/rest/v1/valto_products?select=id,name,category,price,transfer_price,cash_price,stock,image,badge,featured,description,variants,visible&visible=eq.true&order=featured.desc,created_at.asc`, {headers})
+        fetch(`${config.supabaseUrl}/rest/v1/valto_categories?select=id,name,icon,sort_order&visible=eq.true&order=sort_order.asc`, {headers, cache:'no-store'}),
+        fetch(`${config.supabaseUrl}/rest/v1/valto_products?select=id,name,category,price,transfer_price,cash_price,stock,image,badge,featured,description,variants,variant_label,visible&visible=eq.true&order=featured.desc,created_at.asc`, {headers, cache:'no-store'})
       ]);
       if(!cr.ok || !pr.ok) throw new Error('No se pudo cargar el catálogo');
       const categories = await cr.json();
       const products = await pr.json();
-      state.categories = categories.map(c => ({id:c.id,name:c.name,icon:c.icon||'tag'}));
-      state.products = products.map(p => ({
+      const nextCategories = categories.map(c => ({id:c.id,name:c.name,icon:c.icon||'tag'}));
+      const nextProducts = products.map(p => ({
         id:p.id,name:p.name,category:p.category,price:Number(p.price||0),transferPrice:Number(p.transfer_price||0),cashPrice:Number(p.cash_price||0),
         stock:Number(p.stock||0),image:p.image||'',badge:p.badge||'',featured:!!p.featured,description:p.description||'',
-        variants:Array.isArray(p.variants)?p.variants.join(' · '):''
+        variants:Array.isArray(p.variants)?p.variants.join(' · '):'',variantLabel:String(p.variant_label||'Color').trim()||'Color'
       }));
+      const nextSignature = JSON.stringify({
+        c: nextCategories.map(c=>[c.id,c.name,c.icon]),
+        p: nextProducts.map(p=>[p.id,p.name,p.category,p.price,p.transferPrice,p.cashPrice,p.stock,p.image,p.badge,p.featured,p.description,p.variants,p.variantLabel])
+      });
+      const changed = nextSignature !== commerceSignature;
+      commerceSignature = nextSignature;
+      state.categories = nextCategories;
+      state.products = nextProducts;
       window.VALTO_RUNTIME_STATE = state;
+
+      if(changed && initialized){
+        renderCategories();
+        renderProducts();
+        if(currentModalProductId && $('#productModal')?.classList.contains('open')) openProduct(currentModalProductId, true);
+        window.dispatchEvent(new CustomEvent('valto:commerce-updated', {detail:{products:state.products}}));
+      }
+      return changed;
     }catch(e){
       console.error(e);
       window.VALTO_RUNTIME_STATE = state;
-      toast('No se pudo actualizar el stock. Reintentá en unos segundos.');
+      if(!silent) toast('No se pudo actualizar el stock. Reintentá en unos segundos.');
+      return false;
     }
   }
 
@@ -112,13 +132,14 @@
     $$('#pagination .page-btn').forEach(el => el.onclick = () => {page=Number(el.dataset.page);renderProducts();$('#productos').scrollIntoView({behavior:'smooth'});});
   }
 
-  function openProduct(id){
+  function openProduct(id, refresh=false){
     const p = state.products.find(x => x.id === id); if(!p) return;
-    $('#modalInner').innerHTML = `<div class="product-modal-grid"><div class="modal-image"><img src="${esc(p.image)}" alt="${esc(p.name)}"></div><div class="modal-content"><div class="product-category">${esc(p.category)}</div><h2>${esc(p.name)}</h2><p class="modal-description">${esc(p.description || '')}</p><div class="modal-price">${fmt(p.price)}</div><div style="font-size:13px;font-weight:700;margin:8px 0;color:${p.stock<=0?'#9b2c2c':'var(--accent-dark)'}">${p.stock<=0?'Sin stock disponible':`Stock disponible: ${p.stock}`}</div><div class="price-options">${p.transferPrice?`<div class="price-option"><span>Transferencia</span><b>${fmt(p.transferPrice)}</b></div>`:''}${p.cashPrice?`<div class="price-option"><span>Efectivo</span><b>${fmt(p.cashPrice)}</b></div>`:''}</div>${p.variants?`<div class="variant-box"><b>Opciones:</b> ${esc(p.variants)}</div>`:''}<button class="btn btn-dark" style="width:100%" id="modalWa">Consultar por WhatsApp</button></div></div>`;
+    currentModalProductId = id;
+    $('#modalInner').innerHTML = `<div class="product-modal-grid"><div class="modal-image"><img src="${esc(p.image)}" alt="${esc(p.name)}"></div><div class="modal-content"><div class="product-category">${esc(p.category)}</div><h2>${esc(p.name)}</h2><p class="modal-description">${esc(p.description || '')}</p><div class="modal-price">${fmt(p.price)}</div><div style="font-size:13px;font-weight:700;margin:8px 0;color:${p.stock<=0?'#9b2c2c':'var(--accent-dark)'}">${p.stock<=0?'Sin stock disponible':`Stock disponible: ${p.stock}`}</div><div class="price-options">${p.transferPrice?`<div class="price-option"><span>Transferencia</span><b>${fmt(p.transferPrice)}</b></div>`:''}${p.cashPrice?`<div class="price-option"><span>Efectivo</span><b>${fmt(p.cashPrice)}</b></div>`:''}</div><button class="btn btn-dark" style="width:100%" id="modalWa">Consultar por WhatsApp</button></div></div>`;
     $('#modalWa').onclick = () => wa(`Hola! Quería consultar por ${p.name} (${fmt(p.price)}).`);
-    $('#productModal').classList.add('open'); document.body.style.overflow='hidden';
+    if(!refresh){ $('#productModal').classList.add('open'); document.body.style.overflow='hidden'; }
   }
-  function closeProduct(){ $('#productModal').classList.remove('open'); document.body.style.overflow=''; }
+  function closeProduct(){ currentModalProductId=''; $('#productModal').classList.remove('open'); document.body.style.overflow=''; }
   function toast(msg){const t=$('#toast');if(!t)return;t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
   function wa(message='Hola! Quería hacer una consulta en Valto Mates.'){
     const num = (config.whatsappNumber || '').replace(/\D/g,''); if(!num){toast('Falta cargar el número de WhatsApp en config.js');return;} window.open(`https://wa.me/${num}?text=${encodeURIComponent(message)}`,'_blank','noopener');
@@ -135,12 +156,16 @@
   $('#heroSecondary').onclick = (e) => {e.preventDefault();activeCategory='Todos';sort='featured';renderCategories();renderProducts();document.querySelector('#productos').scrollIntoView({behavior:'smooth'});};
 
   window.addEventListener('storage', e => { if(e.key==='valto_store_data'){ try{ const updated=JSON.parse(e.newValue||'null'); if(updated?.settings){state.settings={...state.settings,...updated.settings};applyTheme();} }catch{} } });
+  window.addEventListener('focus', () => loadRemoteCommerce({silent:true}));
+  document.addEventListener('visibilitychange', () => { if(!document.hidden) loadRemoteCommerce({silent:true}); });
 
   async function init(){
     applyTheme();
     await loadRemoteCommerce();
     window.VALTO_RUNTIME_STATE = state;
     renderCategories(); renderProducts();
+    initialized = true;
+    setInterval(() => loadRemoteCommerce({silent:true}), 4000);
   }
   init();
 })();
