@@ -22,3 +22,10 @@ window.VALTO_CATEGORY_ICONS = [
   {id:'tag',label:'General',svg:'<svg viewBox="0 0 32 32" aria-hidden="true"><path d="m5 17 12-12h9v9L14 26 5 17Z"/><circle cx="22" cy="9" r="1.5"/></svg>'}
 ];
 window.VALTO_ICON_MAP = Object.fromEntries(window.VALTO_CATEGORY_ICONS.map(x => [x.id,x]));
+
+(() => {
+  const s = document.createElement('script');
+  s.src = 'payments.js';
+  s.defer = true;
+  document.head.appendChild(s);
+})();
