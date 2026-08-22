@@ -12,6 +12,16 @@ window.VALTO_DEFAULTS = {
     accentDark: "#292b23",
     background: "#f6f2e8"
   },
+  categories: [
+    { id: "mates", name: "Mates", icon: "mate" },
+    { id: "termos", name: "Termos", icon: "thermos" },
+    { id: "hidratacion", name: "Hidratación", icon: "bottle" },
+    { id: "materas", name: "Materas", icon: "bag" },
+    { id: "bombillas", name: "Bombillas", icon: "bombilla" },
+    { id: "combos", name: "Combos", icon: "combo" },
+    { id: "cafe", name: "Café", icon: "coffee" },
+    { id: "yerba", name: "Yerba", icon: "leaf" }
+  ],
   products: [
     {id:"mate-ranchero",name:"Mate ranchero",category:"Mates",price:64000,transferPrice:49280,cashPrice:46080,image:"https://cdn.v2.tiendanegocio.com/gallery/59430/img_59430_dpku1o2r8mmddybb5.jpeg?class=xl",badge:"Más vendido",featured:true,description:"Mate artesanal de algarrobo con detalle de la Cruz del Sur. Incluye bombilla pico de loro de regalo.",variants:"Consultar disponibilidad"},
     {id:"ideal-mate-system-12",name:"Ideal Mate System 1.2L",category:"Termos",price:198900,transferPrice:153153,cashPrice:143208,image:"https://cdn.v2.tiendanegocio.com/gallery/59430/img_59430_hrcu2e7kkms0sdf37.jpeg?class=xl",badge:"Destacado",featured:true,description:"Sistema de termo + mate. Consultá colores disponibles antes de confirmar tu pedido.",variants:"Frost · Coffee · Dried Pine"},
