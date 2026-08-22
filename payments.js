@@ -49,34 +49,38 @@
     const wa = inner.querySelector('#modalWa');
     if(!wa) return;
 
-    if(variants.length){
+    if(variants.length && !$('#purchaseVariant') && !$('#paymentVariant')){
       const choice = document.createElement('div');
       choice.className = 'purchase-choice-box';
-      choice.innerHTML = `<label for="paymentVariant">Elegí ${esc(variantLabel)}</label><p class="purchase-choice-help">Seleccioná ${esc(variantLabel.toLowerCase())} antes de continuar con el pago.</p><select class="payment-variant" id="paymentVariant" ${out?'disabled':''}><option value="">Seleccionar ${esc(variantLabel.toLowerCase())}</option>${variants.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('')}</select>`;
+      choice.innerHTML = `<label for="paymentVariant">Elegí ${esc(variantLabel)}</label><p class="purchase-choice-help">Seleccioná ${esc(variantLabel.toLowerCase())} antes de continuar.</p><select class="payment-variant" id="paymentVariant" ${out?'disabled':''}><option value="">Seleccionar ${esc(variantLabel.toLowerCase())}</option>${variants.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('')}</select>`;
       wa.parentElement?.insertBefore(choice, wa);
     }
 
+    const qty = Math.max(1,Number($('#modalQtyValue')?.textContent || 1));
     const box = document.createElement('div'); box.className = 'online-payment-box';
     box.innerHTML = `
-      <div class="online-payment-title"><b>Pago online seguro</b><span>${fmt(p.price)}</span></div>
+      <div class="online-payment-title"><b>Pago online seguro</b><span>${fmt(Number(p.price)*qty)}</span></div>
       <div class="payment-stock ${out?'out':''}">${out?'Sin stock disponible':`Stock disponible: ${stock}`}</div>
-      <div class="payment-badges"><span class="payment-badge">Mercado Pago</span><span class="payment-badge">VISA</span><span class="payment-badge">Mastercard</span><span class="payment-badge">Amex</span><span class="payment-badge">Débito</span></div>
-      <button class="btn payment-btn" id="payOnlineBtn" ${out?'disabled':''}>${out?'Producto sin stock':'Pagar con Mercado Pago o tarjeta'}</button>
-      <p class="payment-note">El pago se procesa en Mercado Pago. El stock se descuenta automáticamente cuando Mercado Pago confirma el pago.</p>`;
+      <div class="payment-badges"><span class="payment-badge">Mercado Pago</span><span class="payment-badge">VISA</span><span class="payment-badge">Mastercard</span><span class="payment-badge">Amex</span><span class="payment-badge">Débito</span><span class="payment-badge">Dinero en cuenta</span></div>
+      <button class="btn payment-btn" id="payOnlineBtn" ${out?'disabled':''}>${out?'Producto sin stock':'Comprar ahora con Mercado Pago'}</button>
+      <p class="payment-note">También podés agregarlo al carrito y pagar varios productos juntos. El stock se descuenta cuando Mercado Pago confirma el pago.</p>`;
     wa.parentElement?.insertBefore(box, wa);
     if(!out) $('#payOnlineBtn').onclick = () => pay(p, variants.length > 0, variantLabel);
   }
 
   async function pay(p, requiresVariant, variantLabel='opción'){
-    const btn = $('#payOnlineBtn'); const variant = $('#paymentVariant')?.value || '';
+    const btn = $('#payOnlineBtn');
+    const variant = $('#purchaseVariant')?.value || $('#paymentVariant')?.value || '';
+    const quantity = Math.max(1,Number($('#modalQtyValue')?.textContent || 1));
+    const postalCode = String($('#productPostalCode')?.value || localStorage.getItem('valto_postal_code') || '').trim();
     if(requiresVariant && !variant){ toast(`Elegí ${variantLabel.toLowerCase()} antes de pagar.`); return; }
-    if(Number(p.stock || 0) <= 0){ toast('Este producto se quedó sin stock.'); return; }
+    if(Number(p.stock || 0) < quantity){ toast('No hay stock suficiente para esa cantidad.'); return; }
     btn.disabled = true; btn.textContent = 'Abriendo Mercado Pago...';
     try{
-      const r = await fetch('/api/create-preference', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({productId:p.id, quantity:1, variant}) });
+      const r = await fetch('/api/create-preference', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({productId:p.id, quantity, variant, postalCode}) });
       const data = await r.json(); if(!r.ok) throw new Error(data.error || 'No se pudo iniciar el pago.');
       window.location.href = data.checkoutUrl;
-    }catch(e){ toast(e.message || 'No se pudo iniciar el pago.'); btn.disabled=false; btn.textContent='Pagar con Mercado Pago o tarjeta'; }
+    }catch(e){ toast(e.message || 'No se pudo iniciar el pago.'); btn.disabled=false; btn.textContent='Comprar ahora con Mercado Pago'; }
   }
 
   async function showReturnStatus(){
@@ -90,6 +94,7 @@
         if(r.ok){
           kind = data.status === 'approved' ? 'approved' : data.status === 'pending' || data.status === 'in_process' ? 'pending' : 'failure';
           text = kind === 'approved' ? `Pago aprobado por ${fmt(data.amount)}. Stock actualizado. ¡Gracias por tu compra!` : kind === 'pending' ? 'El pago está siendo procesado por Mercado Pago.' : 'Mercado Pago informó que el pago no fue aprobado.';
+          if(kind === 'approved') window.dispatchEvent(new CustomEvent('valto:payment-approved',{detail:data}));
         }
       }catch{}
     }
@@ -98,9 +103,9 @@
   }
 
   injectStyles();
-  document.addEventListener('click', (e) => { const el = e.target.closest?.('[data-open]'); if(el?.dataset?.open){ currentProductId = el.dataset.open; setTimeout(enhanceModal, 0); } }, true);
-  new MutationObserver(enhanceModal).observe($('#modalInner'), { childList:true, subtree:true });
-  window.addEventListener('valto:commerce-updated', () => { if(currentProductId) setTimeout(enhanceModal, 0); });
-  const footerStatus = document.querySelector('.footer-bottom span:last-child'); if(footerStatus) footerStatus.textContent = 'Pagos online con Mercado Pago · Crédito y débito.';
+  document.addEventListener('click', (e) => { const el = e.target.closest?.('[data-open]'); if(el?.dataset?.open){ currentProductId = el.dataset.open; setTimeout(enhanceModal, 20); } }, true);
+  new MutationObserver(()=>setTimeout(enhanceModal,20)).observe($('#modalInner'), { childList:true, subtree:true });
+  window.addEventListener('valto:commerce-updated', () => { if(currentProductId) setTimeout(enhanceModal, 20); });
+  const footerStatus = document.querySelector('.footer-bottom span:last-child'); if(footerStatus) footerStatus.textContent = 'Pagos online con Mercado Pago · Crédito, débito y dinero en cuenta.';
   showReturnStatus();
 })();
