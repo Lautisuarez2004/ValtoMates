@@ -115,21 +115,23 @@
     const inner=$('#modalInner'); const p=modalProduct();
     if(!inner || !p || !$('#productModal')?.classList.contains('open')) return;
     const content=inner.querySelector('.modal-content'); if(!content)return;
-    if(inner.dataset.commerceProduct===String(p.id)) return;
+    if(inner.dataset.commerceProduct===String(p.id) && inner.querySelector('.purchase-options')) return;
     inner.dataset.commerceProduct=String(p.id);
 
     const price=content.querySelector('.modal-price');
-    if(price){ const line=document.createElement('div');line.className='installment-line modal-installments';line.textContent=installmentText(p.price);price.insertAdjacentElement('afterend',line); }
+    if(price && !content.querySelector('.modal-installments')){ const line=document.createElement('div');line.className='installment-line modal-installments';line.textContent=installmentText(p.price);price.insertAdjacentElement('afterend',line); }
 
     const wa=content.querySelector('#modalWa');
+    if(!wa)return;
     const opts=document.createElement('div');opts.className='purchase-options';
     const vs=variants(p); const label=String(p.variantLabel||'Opción').trim()||'Opción';
     const chosen=selectedVariants[p.id]||'';
-    opts.innerHTML=`<div class="purchase-options-title">Configurá tu compra</div>${vs.length?`<div class="variant-selector"><label for="purchaseVariant">Elegí ${esc(label)}</label><select id="purchaseVariant"><option value="">Seleccionar ${esc(label.toLowerCase())}</option>${vs.map(v=>`<option value="${esc(v)}" ${v===chosen?'selected':''}>${esc(v)}</option>`).join('')}</select></div>`:''}<div class="modal-buy-row"><div class="qty-control" aria-label="Cantidad"><button type="button" id="modalQtyMinus">−</button><span id="modalQtyValue">${modalQty}</span><button type="button" id="modalQtyPlus">+</button></div><button class="btn btn-dark modal-add-cart" id="modalAddCart" ${Number(p.stock||0)<=0?'disabled':''}>${Number(p.stock||0)<=0?'Sin stock':'Agregar al carrito'}</button></div>`;
-    wa?.insertAdjacentElement('beforebegin',opts);
+    opts.innerHTML=`<div class="purchase-options-title">Configurá tu compra</div>${vs.length?`<div class="variant-selector"><label for="purchaseVariant">Elegí ${esc(label)}</label><select id="purchaseVariant"><option value="">Seleccionar ${esc(label.toLowerCase())}</option>${vs.map(v=>`<option value="${esc(v)}" ${v===chosen?'selected':''}>${esc(v)}</option>`).join('')}</select></div>`:''}<div class="modal-buy-row"><div class="qty-control" aria-label="Cantidad"><button type="button" id="modalQtyMinus">−</button><span id="modalQtyValue">${Math.min(modalQty,Math.max(1,Number(p.stock||1)))}</span><button type="button" id="modalQtyPlus">+</button></div><button class="btn btn-dark modal-add-cart" id="modalAddCart" ${Number(p.stock||0)<=0?'disabled':''}>${Number(p.stock||0)<=0?'Sin stock':'Agregar al carrito'}</button></div>`;
+    wa.insertAdjacentElement('beforebegin',opts);
 
     const note=document.createElement('div');note.className='dispatch-note';note.innerHTML=`<span>ⓘ</span><span>${esc(settings.shipping_dispatch_text||defaultSettings.shipping_dispatch_text)}</span>`;opts.insertAdjacentElement('afterend',note);
-    const ship=document.createElement('div');ship.className='shipping-box';ship.innerHTML=`<strong>Calcular costo de envío</strong><div class="shipping-form"><input id="productPostalCode" inputmode="text" maxlength="8" placeholder="Tu código postal" value="${esc(localStorage.getItem(POSTAL_KEY)||'')}"><button class="btn btn-outline" id="productShippingCalc">Calcular</button></div><div class="shipping-result" id="productShippingResult"></div><div class="shipping-help">Estimación configurada por la tienda. Al conectar Correo Argentino o Andreani puede cotizarse una tarifa exacta por destino y paquete.</div>`;note.insertAdjacentElement('afterend',ship);
+    const savedCp=localStorage.getItem(POSTAL_KEY)||'';
+    const ship=document.createElement('div');ship.className='shipping-box';ship.innerHTML=`<strong>Calcular costo de envío</strong><div class="shipping-form"><input id="productPostalCode" inputmode="text" maxlength="8" placeholder="Tu código postal" value="${esc(savedCp)}"><button class="btn btn-outline" id="productShippingCalc">Calcular</button></div><div class="shipping-result" id="productShippingResult">${savedCp?esc(shippingFor(Number(p.price||0)*modalQty,savedCp).label):''}</div><div class="shipping-help">Estimación configurada por la tienda. Al conectar Correo Argentino o Andreani puede cotizarse una tarifa exacta por destino y paquete.</div>`;note.insertAdjacentElement('afterend',ship);
     const share=document.createElement('div');share.className='share-row';share.innerHTML=`<button class="btn btn-outline" id="shareProduct">Compartir producto</button>`;ship.insertAdjacentElement('afterend',share);
 
     $('#purchaseVariant')?.addEventListener('change',e=>{selectedVariants[p.id]=e.target.value;});
@@ -148,7 +150,11 @@
     const related=products().filter(x=>x.id!==p.id && Number(x.stock||0)>0).sort((a,b)=>Number(b.category===p.category)-Number(a.category===p.category)).slice(0,3);
     if(related.length){
       const wrap=document.createElement('div');wrap.className='related-wrap';wrap.innerHTML=`<h3>Te puede interesar también</h3><div class="related-grid">${related.map(r=>`<button class="related-card" data-related="${esc(r.id)}"><img src="${esc(r.image)}" alt="${esc(r.name)}"><div><b>${esc(r.name)}</b><span>${fmt(r.price)}</span></div></button>`).join('')}</div>`;inner.appendChild(wrap);
-      wrap.querySelectorAll('[data-related]').forEach(b=>b.onclick=()=>{activeProductId=b.dataset.related;modalQty=1;inner.dataset.commerceProduct='';document.querySelector(`[data-open="${CSS.escape(activeProductId)}"]`)?.click();});
+      wrap.querySelectorAll('[data-related]').forEach(b=>b.onclick=()=>{
+        const target=product(b.dataset.related);if(!target)return;
+        const search=$('#searchInput');if(search){search.value=target.name;search.dispatchEvent(new Event('input',{bubbles:true}));}
+        setTimeout(()=>document.querySelector(`[data-open="${CSS.escape(String(target.id))}"]`)?.click(),20);
+      });
     }
   }
 
@@ -188,7 +194,7 @@
   $('#cartBtn')?.addEventListener('click',openCart);$('#closeCart')?.addEventListener('click',closeCart);$('#cartBackdrop')?.addEventListener('click',e=>{if(e.target===$('#cartBackdrop'))closeCart();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCart();});
   document.addEventListener('click',e=>{const el=e.target.closest?.('[data-open]');if(el?.dataset?.open){activeProductId=el.dataset.open;modalQty=1;setTimeout(enhanceModal,0);}},true);
-  new MutationObserver(()=>{enhanceCards();}).observe($('#productGrid'),{childList:true,subtree:true});
+  new MutationObserver(()=>enhanceCards()).observe($('#productGrid'),{childList:true,subtree:true});
   new MutationObserver(()=>setTimeout(enhanceModal,0)).observe($('#modalInner'),{childList:true,subtree:true});
   window.addEventListener('valto:commerce-updated',()=>{enhanceCards();renderCart();if(activeProductId)setTimeout(enhanceModal,0);});
   window.addEventListener('valto:payment-approved',()=>{cart=[];saveCart();});
