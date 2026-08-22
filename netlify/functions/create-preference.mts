@@ -44,8 +44,14 @@ export default async (req: Request) => {
     });
     const data = await mp.json();
     if (!mp.ok) return Response.json({ error: data?.message || 'No se pudo iniciar el pago.' }, { status: 502 });
-    const sandbox = accessToken.startsWith('TEST-');
-    return Response.json({ checkoutUrl: sandbox ? (data.sandbox_init_point || data.init_point) : data.init_point });
+
+    // La rama dev usa credenciales de prueba. Los tokens de prueba de Checkout Pro
+    // también pueden empezar con APP_USR, por lo que no se deben detectar por prefijo.
+    // Preferimos siempre el sandbox_init_point cuando Mercado Pago lo devuelve.
+    const checkoutUrl = data.sandbox_init_point || data.init_point;
+    if (!checkoutUrl) return Response.json({ error: 'Mercado Pago no devolvió una URL de checkout.' }, { status: 502 });
+
+    return Response.json({ checkoutUrl });
   } catch {
     return Response.json({ error: 'No se pudo iniciar el pago.' }, { status: 500 });
   }
