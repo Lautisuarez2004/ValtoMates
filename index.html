@@ -16,7 +16,7 @@
         <a href="#productos">Productos</a><a href="#categorias">Categorías</a><a href="#combos">Combos</a><a href="#nosotros">Nosotros</a>
       </nav>
       <button class="icon-btn menu-btn" id="menuBtn" aria-label="Abrir menú">☰</button>
-      <a class="brand" href="#inicio" aria-label="Valto Mates"><img src="https://cdn.v2.tiendanegocio.com/logo/59430/img_59430_dpku1ntd4mman1s52.png?class=sm" alt="Valto Mates"></a>
+      <a class="brand brand-lockup" href="#inicio" aria-label="Valto Mates"><span class="brand-mark"><img src="https://cdn.v2.tiendanegocio.com/logo/59430/img_59430_dpku1ntd4mman1s52.png?class=sm" alt="Valto Mates"></span><span class="brand-wordmark"><strong>VALTO</strong><small>MATES</small></span></a>
       <div class="header-actions">
         <button class="icon-btn" id="focusSearch" aria-label="Buscar">⌕</button>
         <a class="icon-btn" id="mailBtn" href="mailto:valtomateslp@gmail.com" aria-label="Contacto">✉</a>
@@ -41,7 +41,7 @@
           <div class="hero-collage" aria-hidden="true">
             <img class="hero-product one" src="https://cdn.v2.tiendanegocio.com/gallery/59430/img_59430_dpku1o2r8mmddybb5.jpeg?class=xl" alt="">
             <img class="hero-product two" src="https://cdn.v2.tiendanegocio.com/gallery/59430/img_59430_hrcu2e7kkms0sdf37.jpeg?class=xl" alt="">
-            <img class="hero-logo-mark" src="https://cdn.v2.tiendanegocio.com/logo/59430/img_59430_dpku1ntd4mman1s52.png?class=sm" alt="">
+            <div class="hero-logo-mark" aria-hidden="true"><img src="https://cdn.v2.tiendanegocio.com/logo/59430/img_59430_dpku1ntd4mman1s52.png?class=sm" alt=""></div>
           </div>
         </div>
         <div class="trust-strip">
@@ -97,7 +97,7 @@
 
   <footer class="footer">
     <div class="container footer-grid">
-      <div><img class="footer-logo" src="https://cdn.v2.tiendanegocio.com/logo/59430/img_59430_dpku1ntd4mman1s52.png?class=sm" alt="Valto Mates"><p>La Plata · Mates, termos, hidratación, materas y accesorios.</p></div>
+      <div><div class="footer-brand"><span class="brand-mark"><img class="footer-logo" src="https://cdn.v2.tiendanegocio.com/logo/59430/img_59430_dpku1ntd4mman1s52.png?class=sm" alt="Valto Mates"></span><span class="brand-wordmark"><strong>VALTO</strong><small>MATES</small></span></div><p>La Plata · Mates, termos, hidratación, materas y accesorios.</p></div>
       <div><h4>Comprar</h4><div class="footer-links"><a href="#productos">Productos</a><a href="#categorias">Categorías</a><a href="#combos">Combos</a><a href="#nosotros">Sobre Valto</a></div></div>
       <div><h4>Contacto</h4><div class="footer-links"><a href="mailto:valtomateslp@gmail.com">valtomateslp@gmail.com</a><button class="btn btn-outline" id="footerWa" style="color:#fff;border-color:rgba(255,255,255,.25);justify-content:flex-start">WhatsApp</button></div></div>
     </div>
@@ -106,11 +106,11 @@
 
   <button class="floating-wa" id="floatingWa" aria-label="Consultar por WhatsApp">◉</button>
 
-  <div class="drawer-backdrop" id="drawerBackdrop"><aside class="drawer"><div class="drawer-head"><img src="https://cdn.v2.tiendanegocio.com/logo/59430/img_59430_dpku1ntd4mman1s52.png?class=sm" alt="Valto Mates" style="width:120px"><button class="round-btn" id="closeDrawer">×</button></div><nav class="drawer-nav"><a href="#productos">Productos</a><a href="#categorias">Categorías</a><a href="#combos">Combos</a><a href="#nosotros">Nosotros</a></nav></aside></div>
+  <div class="drawer-backdrop" id="drawerBackdrop"><aside class="drawer"><div class="drawer-head"><div class="brand-lockup drawer-brand"><span class="brand-mark"><img src="https://cdn.v2.tiendanegocio.com/logo/59430/img_59430_dpku1ntd4mman1s52.png?class=sm" alt="Valto Mates"></span><span class="brand-wordmark"><strong>VALTO</strong><small>MATES</small></span></div><button class="round-btn" id="closeDrawer">×</button></div><nav class="drawer-nav"><a href="#productos">Productos</a><a href="#categorias">Categorías</a><a href="#combos">Combos</a><a href="#nosotros">Nosotros</a></nav></aside></div>
 
   <div class="modal-backdrop" id="productModal"><div class="modal"><button class="round-btn modal-close" id="closeModal">×</button><div id="modalInner"></div></div></div>
   <div class="toast" id="toast"></div>
 
-  <script src="config.js"></script><script src="data.js"></script><script src="app.js"></script>
+  <script src="config.js"></script><script src="category-icons.js"></script><script src="data.js"></script><script src="app.js"></script>
 </body>
 </html>
