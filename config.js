@@ -8,10 +8,14 @@ window.VALTO_CONFIG = {
 
 if (/\/admin\.html$/.test(location.pathname)) {
   window.addEventListener('DOMContentLoaded', () => {
-    if (document.querySelector('script[data-admin-live]')) return;
-    const s = document.createElement('script');
-    s.src = 'admin-live.js';
-    s.dataset.adminLive = '1';
-    document.body.appendChild(s);
+    const load = (src, attr) => {
+      if (document.querySelector(`script[${attr}]`)) return;
+      const s = document.createElement('script');
+      s.src = src;
+      s.setAttribute(attr, '1');
+      document.body.appendChild(s);
+    };
+    load('admin-live.js', 'data-admin-live');
+    load('admin-commerce.js', 'data-admin-commerce');
   });
 }
