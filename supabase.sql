@@ -10,6 +10,15 @@ create table if not exists public.store_settings (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.categories (
+  id text primary key,
+  name text unique not null,
+  icon text not null default 'tag',
+  sort_order integer not null default 0,
+  active boolean not null default true,
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.products (
   id text primary key,
   name text not null,
@@ -28,9 +37,13 @@ create table if not exists public.products (
 );
 
 alter table public.store_settings enable row level security;
+alter table public.categories enable row level security;
 alter table public.products enable row level security;
 
 create policy "public read settings" on public.store_settings for select using (true);
+create policy "public read active categories" on public.categories for select using (active = true);
 create policy "public read active products" on public.products for select using (active = true);
+
 create policy "authenticated manage settings" on public.store_settings for all to authenticated using (true) with check (true);
+create policy "authenticated manage categories" on public.categories for all to authenticated using (true) with check (true);
 create policy "authenticated manage products" on public.products for all to authenticated using (true) with check (true);
