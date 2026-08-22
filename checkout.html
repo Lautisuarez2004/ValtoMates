@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#292b23">
+  <title>Finalizar compra · Valto Mates</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="checkout.css">
+</head>
+<body class="checkout-body">
+  <header class="checkout-header">
+    <a href="index.html" class="checkout-brand" aria-label="Volver a Valto Mates">
+      <span class="checkout-brand-mark"><img src="https://cdn.v2.tiendanegocio.com/logo/59430/img_59430_dpku1ntd4mman1s52.png?class=sm" alt="Valto Mates"></span>
+      <span><strong>VALTO</strong><small>MATES</small></span>
+    </a>
+  </header>
+
+  <main class="checkout-shell">
+    <section class="checkout-order-card">
+      <button class="order-toggle" id="orderToggle" type="button"><span>🛒 Mostrar detalles del pedido</span><strong id="orderTotalHeader">$0</strong></button>
+      <div id="orderDetails" class="order-details hidden"></div>
+    </section>
+
+    <nav class="checkout-steps" aria-label="Pasos de compra">
+      <button type="button" class="step-pill active" data-step-go="1">Datos</button><span>›</span>
+      <button type="button" class="step-pill" data-step-go="2">Envío</button><span>›</span>
+      <button type="button" class="step-pill" data-step-go="3">Pago</button>
+    </nav>
+
+    <section class="checkout-step" data-step="1">
+      <h1>Datos de contacto</h1>
+      <p class="step-copy">Usaremos este email para identificar tu pedido y enviarte la información de la compra.</p>
+      <div class="field"><label for="checkoutEmail">Email</label><input id="checkoutEmail" type="email" autocomplete="email" placeholder="tu@email.com"></div>
+      <div class="checkout-actions"><button class="checkout-primary" id="toShipping">Continuar con el envío</button><a href="index.html">Seguir comprando</a></div>
+    </section>
+
+    <section class="checkout-step hidden" data-step="2">
+      <div class="dispatch-box">ⓘ <span id="dispatchText">Tu pedido se despacha entre 1 y 3 días hábiles.</span></div>
+      <h1>Ingresá tu ubicación</h1>
+      <div class="field"><label for="checkoutPostal">Código postal</label><input id="checkoutPostal" maxlength="8" inputmode="text" placeholder="1900"></div>
+      <a class="postal-link" href="https://www.correoargentino.com.ar/formularios/cpa" target="_blank" rel="noopener">Consultar código postal</a>
+
+      <h2>Seleccioná el método de entrega</h2>
+      <div class="option-list" id="shippingOptions"></div>
+
+      <h2>Datos del destinatario</h2>
+      <div class="grid-2"><div class="field"><label>Nombre</label><input id="firstName" autocomplete="given-name"></div><div class="field"><label>Apellido</label><input id="lastName" autocomplete="family-name"></div></div>
+      <div class="field"><label>Teléfono</label><input id="phone" inputmode="tel" autocomplete="tel"></div>
+      <div class="field"><label>Número de DNI / CUIL / CUIT</label><input id="taxId" inputmode="numeric"></div>
+
+      <div id="addressFields">
+        <h2>Datos de domicilio</h2>
+        <div class="field"><label>Calle</label><input id="street" autocomplete="address-line1"></div>
+        <div class="grid-2"><div class="field"><label>Número (opcional)</label><input id="streetNumber"></div><div class="field"><label>Departamento (opcional)</label><input id="apartment"></div></div>
+        <div class="field"><label>Descripción (opcional)</label><input id="addressDescription" placeholder="Entre calles, referencia, piso..."></div>
+        <div class="field"><label>Ciudad</label><input id="city" autocomplete="address-level2"></div>
+        <div class="grid-2"><div class="field"><label>Código postal</label><input id="postalMirror" disabled></div><div class="field"><label>Provincia</label><select id="province"><option value="">Seleccionar</option><option>Buenos Aires</option><option>Ciudad Autónoma de Buenos Aires</option><option>Catamarca</option><option>Chaco</option><option>Chubut</option><option>Córdoba</option><option>Corrientes</option><option>Entre Ríos</option><option>Formosa</option><option>Jujuy</option><option>La Pampa</option><option>La Rioja</option><option>Mendoza</option><option>Misiones</option><option>Neuquén</option><option>Río Negro</option><option>Salta</option><option>San Juan</option><option>San Luis</option><option>Santa Cruz</option><option>Santa Fe</option><option>Santiago del Estero</option><option>Tierra del Fuego</option><option>Tucumán</option></select></div></div>
+      </div>
+
+      <div class="checkout-actions"><button class="checkout-primary" id="toPayment">Continuar con el pago</button><button class="checkout-link" data-step-go="1">Volver a datos</button></div>
+    </section>
+
+    <section class="checkout-step hidden" data-step="3">
+      <h1>Método de pago</h1>
+      <div class="option-list payment-options" id="paymentOptions"></div>
+      <h2>Notas del pedido</h2>
+      <div class="field"><textarea id="orderNotes" rows="5" placeholder="Aclaraciones para el vendedor (opcional)"></textarea></div>
+      <div class="final-summary" id="finalSummary"></div>
+      <div class="checkout-actions"><button class="checkout-primary" id="finishOrder">Finalizar el pedido</button><button class="checkout-link" data-step-go="2">Volver al envío</button></div>
+    </section>
+
+    <section class="checkout-step hidden" data-step="4" id="confirmationStep">
+      <div class="confirmation-card"><div class="confirmation-icon">✓</div><h1>Pedido registrado</h1><p id="confirmationText"></p><div class="confirmation-id" id="confirmationId"></div><a class="checkout-primary inline" href="index.html">Volver a la tienda</a></div>
+    </section>
+  </main>
+
+  <div class="checkout-toast" id="checkoutToast"></div>
+  <script src="config.js"></script>
+  <script src="checkout.js"></script>
+</body>
+</html>
