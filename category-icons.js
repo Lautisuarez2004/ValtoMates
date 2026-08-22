@@ -1,3 +1,13 @@
+(() => {
+  if (!document.querySelector('link[data-valto-v2]')) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'v2.css';
+    link.dataset.valtoV2 = 'true';
+    document.head.appendChild(link);
+  }
+})();
+
 window.VALTO_CATEGORY_ICONS = [
   {id:'sparkles',label:'Destacados',svg:'<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3l1.6 5.4L23 10l-5.4 1.6L16 17l-1.6-5.4L9 10l5.4-1.6L16 3Z"/><path d="M24 17l1.1 3.9L29 22l-3.9 1.1L24 27l-1.1-3.9L19 22l3.9-1.1L24 17Z"/><path d="M8 18l.9 3.1L12 22l-3.1.9L8 26l-.9-3.1L4 22l3.1-.9L8 18Z"/></svg>'},
   {id:'mate',label:'Mate',svg:'<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10 13h13l-1.5 10.5A5 5 0 0 1 16.6 28h-.2a5 5 0 0 1-4.9-4.5L10 13Z"/><path d="M8 13h17"/><path d="M20 13 25 4"/><path d="M24 5l2 1"/><path d="M13 17c2 1.3 5 1.3 7 0"/></svg>'},
