@@ -5,3 +5,13 @@ window.VALTO_CONFIG = {
   instagramUrl: "",
   email: "valtomateslp@gmail.com"
 };
+
+if (/\/admin\.html$/.test(location.pathname)) {
+  window.addEventListener('DOMContentLoaded', () => {
+    if (document.querySelector('script[data-admin-live]')) return;
+    const s = document.createElement('script');
+    s.src = 'admin-live.js';
+    s.dataset.adminLive = '1';
+    document.body.appendChild(s);
+  });
+}
