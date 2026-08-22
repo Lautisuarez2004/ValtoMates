@@ -101,11 +101,14 @@
       const body=card.querySelector('.product-body'); if(!body)return;
       let line=body.querySelector('.installment-line');
       if(!line){ line=document.createElement('div');line.className='installment-line'; const price=body.querySelector('.price-row'); price?.insertAdjacentElement('afterend',line); }
-      line.textContent=installmentText(p.price);
+      const installment = installmentText(p.price);
+      if(line.textContent !== installment) line.textContent = installment;
       let btn=body.querySelector('.quick-cart');
       if(!btn){ btn=document.createElement('button');btn.className='btn btn-outline quick-cart'; const actions=body.querySelector('.product-actions'); actions?.insertAdjacentElement('beforebegin',btn); }
-      btn.disabled=Number(p.stock||0)<=0;
-      btn.textContent=btn.disabled?'Sin stock':variants(p).length?`Elegir ${String(p.variantLabel||'opción').toLowerCase()} y agregar`:'Agregar al carrito';
+      const disabled = Number(p.stock||0)<=0;
+      if(btn.disabled !== disabled) btn.disabled = disabled;
+      const label = disabled?'Sin stock':variants(p).length?`Elegir ${String(p.variantLabel||'opción').toLowerCase()} y agregar`:'Agregar al carrito';
+      if(btn.textContent !== label) btn.textContent = label;
       btn.onclick=(e)=>{e.stopPropagation(); if(variants(p).length){trigger?.click();}else addToCart(p.id,'',1);};
     });
   }
@@ -194,8 +197,10 @@
   $('#cartBtn')?.addEventListener('click',openCart);$('#closeCart')?.addEventListener('click',closeCart);$('#cartBackdrop')?.addEventListener('click',e=>{if(e.target===$('#cartBackdrop'))closeCart();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCart();});
   document.addEventListener('click',e=>{const el=e.target.closest?.('[data-open]');if(el?.dataset?.open){activeProductId=el.dataset.open;modalQty=1;setTimeout(enhanceModal,0);}},true);
-  new MutationObserver(()=>enhanceCards()).observe($('#productGrid'),{childList:true,subtree:true});
-  new MutationObserver(()=>setTimeout(enhanceModal,0)).observe($('#modalInner'),{childList:true,subtree:true});
+  const productGrid = $('#productGrid');
+  if(productGrid) new MutationObserver(()=>enhanceCards()).observe(productGrid,{childList:true,subtree:true});
+  const modalInner = $('#modalInner');
+  if(modalInner) new MutationObserver(()=>setTimeout(enhanceModal,0)).observe(modalInner,{childList:true,subtree:true});
   window.addEventListener('valto:commerce-updated',()=>{enhanceCards();renderCart();if(activeProductId)setTimeout(enhanceModal,0);});
   window.addEventListener('valto:payment-approved',()=>{cart=[];saveCart();});
   window.addEventListener('storage',e=>{if(e.key===CART_KEY){cart=loadCart();renderCart();}});
