@@ -1,5 +1,6 @@
 (() => {
   const CPA_URL='https://www.correoargentino.com.ar/formularios/cpa';
+  const WA_ICON_URL='https://raw.githubusercontent.com/Lautisuarez2004/OrigenFit/main/whatsapp-white.png';
 
   function injectStyles(){
     if(document.getElementById('commercePolishStyles')) return;
@@ -13,6 +14,14 @@
       .postal-help-link{display:inline-block;margin-top:7px;font-size:12px;color:var(--accent);text-decoration:underline;text-underline-offset:3px}
       .quick-cart:not(:disabled){font-size:0}
       .quick-cart:not(:disabled)::after{content:'Agregar al carrito';font-size:13px;font-weight:700;line-height:1.2}
+      .wa-mini{display:none!important}
+      #headerWa{background:#25D366;border-color:#25D366;color:#fff}
+      #headerWa:hover{background:#20bd5a;border-color:#20bd5a}
+      .wa-real-icon{width:20px;height:20px;display:block;object-fit:contain;flex:0 0 auto}
+      #headerWa .wa-real-icon{width:22px;height:22px}
+      #floatingWa .wa-real-icon{width:30px;height:30px}
+      #modalWa .wa-real-icon,#footerWa .wa-real-icon{width:19px;height:19px}
+      #modalWa,#footerWa{display:inline-flex;align-items:center;justify-content:center;gap:9px}
       @media(max-width:600px){.variant-pill{padding:10px 13px;flex:0 0 auto}.variant-pills{gap:7px}}
     `;
     document.head.appendChild(s);
@@ -58,7 +67,25 @@
     });
   }
 
-  function run(root=document){injectStyles();polishVariants(root);addPostalHelp(root);}
+  function polishWhatsApp(){
+    document.querySelectorAll('.wa-mini').forEach(el=>el.remove());
+
+    ['headerWa','floatingWa'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(!el || el.dataset.waIconReady==='1') return;
+      el.innerHTML=`<img class="wa-real-icon" src="${WA_ICON_URL}" alt="">`;
+      el.dataset.waIconReady='1';
+    });
+
+    [['modalWa','Consultar por WhatsApp'],['footerWa','WhatsApp']].forEach(([id,label])=>{
+      const el=document.getElementById(id);
+      if(!el || el.dataset.waIconReady==='1') return;
+      el.innerHTML=`<img class="wa-real-icon" src="${WA_ICON_URL}" alt=""><span>${label}</span>`;
+      el.dataset.waIconReady='1';
+    });
+  }
+
+  function run(root=document){injectStyles();polishVariants(root);addPostalHelp(root);polishWhatsApp();}
   run();
   new MutationObserver(records=>records.forEach(r=>r.addedNodes.forEach(n=>{if(n.nodeType===1)run(n)}))).observe(document.body,{childList:true,subtree:true});
 })();
