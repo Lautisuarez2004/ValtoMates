@@ -11,6 +11,8 @@
       .variant-pill:hover{background:rgba(74,75,55,.08)}
       .variant-pill.active{background:var(--accent);color:#fff;border-color:var(--accent)}
       .postal-help-link{display:inline-block;margin-top:7px;font-size:12px;color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+      .quick-cart:not(:disabled){font-size:0}
+      .quick-cart:not(:disabled)::after{content:'Agregar al carrito';font-size:13px;font-weight:700;line-height:1.2}
       @media(max-width:600px){.variant-pill{padding:10px 13px;flex:0 0 auto}.variant-pills{gap:7px}}
     `;
     document.head.appendChild(s);
