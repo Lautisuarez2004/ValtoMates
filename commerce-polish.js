@@ -16,6 +16,7 @@
       .quick-cart:not(:disabled)::after{content:'Agregar al carrito';font-size:13px;font-weight:700;line-height:1.2}
       .wa-mini{display:none!important}
       .product-actions{grid-template-columns:1fr!important}
+      #mailBtn{display:none!important}
       #headerWa{background:var(--paper);border-color:var(--line);color:#25D366;padding:0;overflow:visible}
       #headerWa:hover{background:var(--paper);color:#20bd5a}
       .wa-svg{display:block;width:22px;height:22px;overflow:visible;flex:0 0 auto}
