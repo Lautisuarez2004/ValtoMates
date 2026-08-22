@@ -1,7 +1,8 @@
 (() => {
   const defaults = window.VALTO_DEFAULTS;
   const config = window.VALTO_CONFIG || {};
-  let state = JSON.parse(localStorage.getItem('valto_store_data') || 'null') || structuredClone(defaults);
+  const iconMap = window.VALTO_ICON_MAP || {};
+  let state = normalizeState(JSON.parse(localStorage.getItem('valto_store_data') || 'null') || structuredClone(defaults));
   let activeCategory = 'Todos';
   let query = '';
   let sort = 'featured';
@@ -11,7 +12,31 @@
   const $ = (s) => document.querySelector(s);
   const $$ = (s) => [...document.querySelectorAll(s)];
   const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(Number(n || 0));
-  const esc = (s='') => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const esc = (s='') => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const slug = (s='') => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+
+  function normalizeState(raw){
+    const next = raw && typeof raw === 'object' ? raw : structuredClone(defaults);
+    next.settings = {...structuredClone(defaults.settings), ...(next.settings || {})};
+    next.products = Array.isArray(next.products) ? next.products : structuredClone(defaults.products);
+    if(!Array.isArray(next.categories) || !next.categories.length){
+      const seen = new Set();
+      const inferred = [];
+      const defaultByName = Object.fromEntries((defaults.categories || []).map(c => [c.name,c]));
+      next.products.forEach(p => {
+        if(!p.category || seen.has(p.category)) return;
+        seen.add(p.category);
+        const known = defaultByName[p.category];
+        inferred.push(known ? structuredClone(known) : {id:slug(p.category),name:p.category,icon:'tag'});
+      });
+      next.categories = inferred.length ? inferred : structuredClone(defaults.categories || []);
+    }
+    return next;
+  }
+
+  function iconSvg(id){
+    return (iconMap[id] || iconMap.tag || {svg:''}).svg;
+  }
 
   function applyTheme(){
     const s = state.settings;
@@ -30,13 +55,17 @@
     if(config.email) $('#mailBtn').href = `mailto:${config.email}`;
   }
 
-  const categories = [
-    ['Todos','✦'],['Mates','🧉'],['Termos','♨'],['Hidratación','◌'],['Materas','▣'],['Bombillas','╱'],['Combos','＋'],['Café','☕'],['Yerba','❧']
-  ];
-
   function renderCategories(){
-    $('#categoryList').innerHTML = categories.map(([name,icon]) => `<button class="category-card ${activeCategory===name?'active':''}" data-category="${name}"><div class="category-emoji">${icon}</div><span>${name}</span></button>`).join('');
-    $$('#categoryList .category-card').forEach(btn => btn.onclick = () => { activeCategory = btn.dataset.category; page=1; renderCategories(); renderProducts(); document.querySelector('#productos').scrollIntoView({behavior:'smooth'}); });
+    const allCard = `<button class="category-card ${activeCategory==='Todos'?'active':''}" data-category="Todos"><div class="category-icon">${iconSvg('sparkles')}</div><span>Todos</span></button>`;
+    const cards = state.categories.map(c => `<button class="category-card ${activeCategory===c.name?'active':''}" data-category="${esc(c.name)}"><div class="category-icon">${iconSvg(c.icon)}</div><span>${esc(c.name)}</span></button>`).join('');
+    $('#categoryList').innerHTML = allCard + cards;
+    $$('#categoryList .category-card').forEach(btn => btn.onclick = () => {
+      activeCategory = btn.dataset.category;
+      page = 1;
+      renderCategories();
+      renderProducts();
+      document.querySelector('#productos').scrollIntoView({behavior:'smooth'});
+    });
   }
 
   function filteredProducts(){
@@ -60,6 +89,7 @@
   }
 
   function renderProducts(){
+    if(activeCategory !== 'Todos' && !state.categories.some(c => c.name === activeCategory)) activeCategory = 'Todos';
     const arr = filteredProducts();
     const maxPage = Math.max(1,Math.ceil(arr.length/pageSize));
     if(page>maxPage) page=maxPage;
@@ -99,6 +129,13 @@
   ['#floatingWa','#headerWa','#footerWa','#comboWa'].forEach(sel => $(sel).onclick = () => wa(sel==='#comboWa'?'Hola! Quiero armar un combo matero.':'Hola! Quería hacer una consulta en Valto Mates.'));
   $('#heroSecondary').onclick = (e) => {e.preventDefault(); activeCategory='Todos'; sort='featured'; renderCategories(); renderProducts(); document.querySelector('#productos').scrollIntoView({behavior:'smooth'});};
 
-  window.addEventListener('storage', e => {if(e.key==='valto_store_data'){state=JSON.parse(e.newValue||'null')||structuredClone(defaults);applyTheme();renderProducts();}});
+  window.addEventListener('storage', e => {
+    if(e.key==='valto_store_data'){
+      state=normalizeState(JSON.parse(e.newValue||'null')||structuredClone(defaults));
+      applyTheme();
+      renderCategories();
+      renderProducts();
+    }
+  });
   applyTheme();renderCategories();renderProducts();
 })();
