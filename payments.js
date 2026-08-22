@@ -2,7 +2,6 @@
   let currentProductId = '';
   const $ = (s) => document.querySelector(s);
   const fmt = (n) => new Intl.NumberFormat('es-AR', { style:'currency', currency:'ARS', maximumFractionDigits:0 }).format(Number(n || 0));
-  const esc = (s='') => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   function getState(){
     if(window.VALTO_RUNTIME_STATE) return window.VALTO_RUNTIME_STATE;
@@ -19,16 +18,12 @@
     if($('#paymentStyles')) return;
     const style = document.createElement('style'); style.id = 'paymentStyles';
     style.textContent = `
-      .purchase-choice-box{margin:18px 0 0;padding:16px;border:1px solid rgba(41,43,35,.16);border-radius:16px;background:#f7f4eb}
-      .purchase-choice-box label{display:block;font-size:15px;font-weight:800;color:var(--accent-dark);margin-bottom:5px}.purchase-choice-help{font-size:12px;line-height:1.45;color:var(--muted);margin:0 0 10px}
-      .online-payment-box{margin-top:12px;padding:16px;border:1px solid rgba(41,43,35,.14);border-radius:16px;background:#fff}
-      .online-payment-title{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}.online-payment-title b{font-size:15px}.online-payment-title span{font-size:12px;color:var(--muted)}
-      .payment-badges{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 14px}.payment-badge{padding:6px 9px;border:1px solid rgba(41,43,35,.12);border-radius:8px;background:#faf9f5;font-size:11px;font-weight:700;letter-spacing:.02em}
-      .payment-variant{width:100%;margin:0;padding:11px 12px;border:1px solid rgba(41,43,35,.18);border-radius:10px;background:#fff;font:inherit}
-      .payment-btn{width:100%;background:#009ee3!important;color:#fff!important;border-color:#009ee3!important}.payment-btn:disabled{opacity:.55;cursor:not-allowed}
-      .payment-note{font-size:11px;line-height:1.45;color:var(--muted);margin:9px 0 0}
-      .payment-stock{font-size:12px;font-weight:800;margin:0 0 10px}.payment-stock.out{color:#9b2c2c}
+      .product-checkout-box{margin-top:12px;padding:14px;border:1px solid rgba(41,43,35,.14);border-radius:16px;background:#fff}
+      .product-checkout-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+      .product-finish-btn{width:100%;justify-content:center}
+      .product-continue-btn{width:100%;justify-content:center;background:transparent!important;color:var(--accent-dark)!important;border-color:rgba(41,43,35,.22)!important}
       .payment-notice{max-width:1180px;margin:14px auto 0;padding:14px 18px;border-radius:14px;font-weight:700}.payment-notice.approved{background:#e8f7ee;color:#176b3a}.payment-notice.pending{background:#fff6da;color:#735c0f}.payment-notice.failure{background:#fdecec;color:#8a2626}
+      @media(max-width:560px){.product-checkout-actions{grid-template-columns:1fr}}
     `;
     document.head.appendChild(style);
   }
@@ -39,48 +34,38 @@
     return raw.split('·').map(v => v.trim()).filter(Boolean).filter(v => !/^consultar/i.test(v));
   }
 
-  function enhanceModal(){
-    const inner = $('#modalInner');
-    if(!inner || inner.querySelector('.online-payment-box') || !currentProductId) return;
-    const p = getState().products?.find(x => x.id === currentProductId); if(!p) return;
+  function finishFromProduct(p){
     const variants = parseVariants(p);
-    const variantLabel = String(p.variantLabel || 'Opción').trim() || 'Opción';
-    const stock = Number(p.stock || 0); const out = stock <= 0;
-    const wa = inner.querySelector('#modalWa');
-    if(!wa) return;
+    const variantLabel = String(p.variantLabel || 'opción').trim() || 'opción';
+    const variant = $('#purchaseVariant')?.value || '';
+    const quantity = Math.max(1, Number($('#modalQtyValue')?.textContent || 1));
+    if(variants.length && !variant){ toast(`Elegí ${variantLabel.toLowerCase()} antes de continuar.`); return; }
+    if(Number(p.stock || 0) < quantity){ toast('No hay stock suficiente para esa cantidad.'); return; }
 
-    if(variants.length && !$('#purchaseVariant') && !$('#paymentVariant')){
-      const choice = document.createElement('div');
-      choice.className = 'purchase-choice-box';
-      choice.innerHTML = `<label for="paymentVariant">Elegí ${esc(variantLabel)}</label><p class="purchase-choice-help">Seleccioná ${esc(variantLabel.toLowerCase())} antes de continuar.</p><select class="payment-variant" id="paymentVariant" ${out?'disabled':''}><option value="">Seleccionar ${esc(variantLabel.toLowerCase())}</option>${variants.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('')}</select>`;
-      wa.parentElement?.insertBefore(choice, wa);
-    }
-
-    const qty = Math.max(1,Number($('#modalQtyValue')?.textContent || 1));
-    const box = document.createElement('div'); box.className = 'online-payment-box';
-    box.innerHTML = `
-      <div class="online-payment-title"><b>Pago online seguro</b><span>${fmt(Number(p.price)*qty)}</span></div>
-      <div class="payment-stock ${out?'out':''}">${out?'Sin stock disponible':`Stock disponible: ${stock}`}</div>
-      <div class="payment-badges"><span class="payment-badge">Mercado Pago</span><span class="payment-badge">VISA</span><span class="payment-badge">Mastercard</span><span class="payment-badge">Amex</span><span class="payment-badge">Débito</span><span class="payment-badge">Dinero en cuenta</span></div>
-      <button class="btn payment-btn" id="payOnlineBtn" ${out?'disabled':''}>${out?'Producto sin stock':'Comprar ahora con Mercado Pago'}</button>
-      <p class="payment-note">También podés agregarlo al carrito y pagar varios productos juntos. El stock se descuenta cuando Mercado Pago confirma el pago.</p>`;
-    wa.parentElement?.insertBefore(box, wa);
-    if(!out) $('#payOnlineBtn').onclick = () => pay(p, variants.length > 0, variantLabel);
+    const addBtn = $('#modalAddCart');
+    if(!addBtn || addBtn.disabled){ toast('No se pudo agregar el producto al carrito.'); return; }
+    addBtn.click();
+    setTimeout(() => { window.location.href = 'checkout.html'; }, 80);
   }
 
-  async function pay(p, requiresVariant, variantLabel='opción'){
-    const btn = $('#payOnlineBtn');
-    const variant = $('#purchaseVariant')?.value || $('#paymentVariant')?.value || '';
-    const quantity = Math.max(1,Number($('#modalQtyValue')?.textContent || 1));
-    const postalCode = String($('#productPostalCode')?.value || localStorage.getItem('valto_postal_code') || '').trim();
-    if(requiresVariant && !variant){ toast(`Elegí ${variantLabel.toLowerCase()} antes de pagar.`); return; }
-    if(Number(p.stock || 0) < quantity){ toast('No hay stock suficiente para esa cantidad.'); return; }
-    btn.disabled = true; btn.textContent = 'Abriendo Mercado Pago...';
-    try{
-      const r = await fetch('/api/create-preference', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({productId:p.id, quantity, variant, postalCode}) });
-      const data = await r.json(); if(!r.ok) throw new Error(data.error || 'No se pudo iniciar el pago.');
-      window.location.href = data.checkoutUrl;
-    }catch(e){ toast(e.message || 'No se pudo iniciar el pago.'); btn.disabled=false; btn.textContent='Comprar ahora con Mercado Pago'; }
+  function enhanceModal(){
+    const inner = $('#modalInner');
+    if(!inner || !currentProductId || !$('#productModal')?.classList.contains('open')) return;
+    const p = getState().products?.find(x => x.id === currentProductId); if(!p) return;
+
+    inner.querySelector('.online-payment-box')?.remove();
+    inner.querySelector('.purchase-choice-box')?.remove();
+    if(inner.querySelector('.product-checkout-box')) return;
+
+    const wa = inner.querySelector('#modalWa');
+    if(!wa) return;
+    const box = document.createElement('div');
+    box.className = 'product-checkout-box';
+    box.innerHTML = `<div class="product-checkout-actions"><button class="btn btn-dark product-finish-btn" id="finishProductCheckout">Finalizar compra</button><button class="btn btn-outline product-continue-btn" id="continueShopping">Seguir comprando</button></div>`;
+    wa.parentElement?.insertBefore(box, wa);
+
+    $('#finishProductCheckout').onclick = () => finishFromProduct(p);
+    $('#continueShopping').onclick = () => $('#closeModal')?.click();
   }
 
   async function showReturnStatus(){
@@ -103,9 +88,9 @@
   }
 
   injectStyles();
-  document.addEventListener('click', (e) => { const el = e.target.closest?.('[data-open]'); if(el?.dataset?.open){ currentProductId = el.dataset.open; setTimeout(enhanceModal, 20); } }, true);
-  new MutationObserver(()=>setTimeout(enhanceModal,20)).observe($('#modalInner'), { childList:true, subtree:true });
-  window.addEventListener('valto:commerce-updated', () => { if(currentProductId) setTimeout(enhanceModal, 20); });
-  const footerStatus = document.querySelector('.footer-bottom span:last-child'); if(footerStatus) footerStatus.textContent = 'Pagos online con Mercado Pago · Crédito, débito y dinero en cuenta.';
+  document.addEventListener('click', (e) => { const el = e.target.closest?.('[data-open]'); if(el?.dataset?.open){ currentProductId = el.dataset.open; setTimeout(enhanceModal, 30); } }, true);
+  new MutationObserver(()=>setTimeout(enhanceModal,30)).observe($('#modalInner'), { childList:true, subtree:true });
+  window.addEventListener('valto:commerce-updated', () => { if(currentProductId) setTimeout(enhanceModal, 30); });
+  const footerStatus = document.querySelector('.footer-bottom span:last-child'); if(footerStatus) footerStatus.textContent = 'Pagos: Mercado Pago, transferencia, efectivo o a coordinar.';
   showReturnStatus();
 })();
