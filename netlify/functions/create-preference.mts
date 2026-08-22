@@ -1,7 +1,7 @@
 declare const Netlify: { env: { get(name: string): string | undefined } };
 
 const SUPABASE_URL = 'https://ptkzmshcfarerufnrrzq.supabase.co';
-const SUPABASE_KEY = 'sb_publishable__rY7nJoJv0Nd6QCDFafIog_t2dfQ6sl';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0a3ptc2hjZmFyZXJ1Zm5ycnpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3NTU1NzAsImV4cCI6MjEwMjMzMTU3MH0.eKgLehO8wnV_Jt0vY-R0LQj51RNA7Te39BMHE2iHqxU';
 const COMMERCE_URL = `${SUPABASE_URL}/functions/v1/valto-commerce`;
 
 async function getProduct(productId: string) {
