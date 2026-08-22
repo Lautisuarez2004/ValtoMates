@@ -15,6 +15,7 @@
       .quick-cart:not(:disabled){font-size:0}
       .quick-cart:not(:disabled)::after{content:'Agregar al carrito';font-size:13px;font-weight:700;line-height:1.2}
       .wa-mini{display:none!important}
+      .product-actions{grid-template-columns:1fr!important}
       #headerWa{background:#25D366;border-color:#25D366;color:#fff}
       #headerWa:hover{background:#20bd5a;border-color:#20bd5a}
       .wa-real-icon{width:20px;height:20px;display:block;object-fit:contain;flex:0 0 auto}
