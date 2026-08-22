@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es-AR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Valto Mates · Administración</title><link rel="stylesheet" href="styles.css"></head>
+<body class="admin-body"><div class="admin-shell">
+  <aside class="admin-sidebar"><a href="index.html" class="brand"><img src="https://cdn.v2.tiendanegocio.com/logo/59430/img_59430_dpku1ntd4mman1s52.png?class=sm" alt="Valto Mates"></a><div class="admin-nav"><button class="active" data-tab="general">General</button><button data-tab="products">Productos</button><button data-tab="contact">Contacto</button><button data-tab="data">Datos</button></div></aside>
+  <main class="admin-main"><div class="admin-topbar"><div class="admin-title"><h1>Panel de administración</h1><p>Editá la tienda sin tocar código.</p></div><div id="modePill" class="status-pill local">● Modo local</div></div>
+  <div class="admin-note">Esta primera versión guarda los cambios en este navegador. El archivo <b>supabase.sql</b> y la estructura de configuración quedan listos para conectarlo a Supabase y publicar los cambios para todos.</div>
+
+  <section data-panel="general"><div class="admin-card"><h2>Textos y colores</h2><div class="form-grid">
+    <div class="field full"><label>Barra superior</label><input id="announcement"></div>
+    <div class="field"><label>Etiqueta del hero</label><input id="heroEyebrow"></div><div class="field"><label>Título principal</label><input id="heroTitle"></div>
+    <div class="field full"><label>Texto principal</label><textarea id="heroText"></textarea></div>
+    <div class="field"><label>Botón principal</label><input id="heroCta"></div><div class="field"><label>Botón secundario</label><input id="heroSecondary"></div>
+    <div class="field"><label>Color principal</label><input id="accent" type="color"></div><div class="field"><label>Color oscuro</label><input id="accentDark" type="color"></div>
+    <div class="field"><label>Fondo</label><input id="background" type="color"></div><div></div>
+    <div class="field"><label>Título combos</label><input id="comboTitle"></div><div class="field"><label>Texto combos</label><input id="comboText"></div>
+  </div><div class="admin-actions"><button class="btn btn-dark" id="saveGeneral">Guardar cambios</button><a class="btn btn-outline" href="index.html" target="_blank">Ver tienda</a></div></div></section>
+
+  <section data-panel="products" class="hidden"><div class="admin-card"><div class="section-head" style="margin-bottom:16px"><div><h2 style="margin:0">Productos</h2><p style="color:var(--muted);margin:5px 0 0">Editar, duplicar o eliminar productos.</p></div><button class="btn btn-dark" id="newProduct">+ Nuevo producto</button></div><div style="overflow:auto"><table class="product-table"><thead><tr><th></th><th>Producto</th><th>Categoría</th><th>Precio</th><th>Destacado</th><th></th></tr></thead><tbody id="productRows"></tbody></table></div></div>
+  <div class="admin-card hidden" id="productFormCard"><h2 id="productFormTitle">Editar producto</h2><div class="form-grid">
+    <div class="field"><label>Nombre</label><input id="pName"></div><div class="field"><label>ID / slug</label><input id="pId"></div><div class="field"><label>Categoría</label><input id="pCategory"></div><div class="field"><label>Badge</label><input id="pBadge" placeholder="Más vendido"></div>
+    <div class="field"><label>Precio lista</label><input id="pPrice" type="number"></div><div class="field"><label>Precio transferencia</label><input id="pTransfer" type="number"></div><div class="field"><label>Precio efectivo</label><input id="pCash" type="number"></div><div class="field"><label>Imagen</label><input id="pImage" placeholder="assets/img/archivo.webp"></div>
+    <div class="field full"><label>Descripción</label><textarea id="pDescription"></textarea></div><div class="field full"><label>Variantes</label><input id="pVariants"></div><div class="field"><label><input id="pFeatured" type="checkbox"> Mostrar como destacado</label></div>
+  </div><div class="admin-actions"><button class="btn btn-dark" id="saveProduct">Guardar producto</button><button class="btn btn-outline" id="cancelProduct">Cancelar</button></div></div></section>
+
+  <section data-panel="contact" class="hidden"><div class="admin-card"><h2>Contacto</h2><p style="color:var(--muted)">Estos datos se editan en <b>config.js</b> para esta versión estática.</p><div class="form-grid"><div class="field"><label>Email actual</label><input value="valtomateslp@gmail.com" disabled></div><div class="field"><label>WhatsApp</label><input value="Pendiente de cargar" disabled></div></div></div></section>
+
+  <section data-panel="data" class="hidden"><div class="admin-card"><h2>Importar / exportar</h2><p style="color:var(--muted)">Útil para pasar los cambios entre navegadores mientras no esté conectado Supabase.</p><div class="admin-actions"><button class="btn btn-dark" id="exportData">Descargar JSON</button><label class="btn btn-outline" for="importFile">Importar JSON</label><input class="hidden" id="importFile" type="file" accept="application/json"><button class="btn btn-outline danger" id="resetData">Restaurar demo</button></div></div></section>
+  </main>
+</div><div class="toast" id="toast"></div><script src="config.js"></script><script src="data.js"></script><script src="admin.js"></script></body></html>
