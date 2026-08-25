@@ -21,7 +21,9 @@ window.addEventListener('DOMContentLoaded', () => {
     load('admin-live.js', 'data-admin-live');
     load('admin-commerce.js', 'data-admin-commerce');
     load('admin-image-editor.js', 'data-admin-image-editor');
+    load('admin-contact.js', 'data-admin-contact');
   } else {
+    load('contact-settings.js', 'data-contact-settings');
     load('commerce-polish.js', 'data-commerce-polish');
     load('product-image-framing.js', 'data-product-image-framing');
   }
