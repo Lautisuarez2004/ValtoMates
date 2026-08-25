@@ -85,7 +85,21 @@
     contact.appendChild(row);
   }
 
-  function runAll(){injectStyles();polishVariants(document);addPostalHelp(document);polishWhatsApp();addSocialLinks();}
+  function unifyCatalogProductOpen(){
+    if(document.documentElement.dataset.unifiedProductOpen==='1')return;
+    document.documentElement.dataset.unifiedProductOpen='1';
+    document.addEventListener('click',e=>{
+      const btn=e.target.closest?.('.quick-cart');
+      if(!btn||btn.disabled)return;
+      const trigger=btn.closest('.product-card')?.querySelector('[data-open]');
+      if(!trigger)return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      trigger.click();
+    },true);
+  }
+
+  function runAll(){injectStyles();polishVariants(document);addPostalHelp(document);polishWhatsApp();addSocialLinks();unifyCatalogProductOpen();}
   runAll();
 
   const modal=document.getElementById('modalInner');
