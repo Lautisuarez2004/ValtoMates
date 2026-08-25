@@ -1,6 +1,9 @@
 (() => {
+  const config=window.VALTO_CONFIG||{};
   const CPA_URL='https://www.correoargentino.com.ar/formularios/cpa';
   const whatsappSvg = (cls='wa-svg') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.009-.371-.011-.57-.011-.198 0-.52.074-.792.371-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.57-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.981.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.885 9.888-9.885 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.055 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.14 1.588 5.945L.056 24l6.3-1.652a11.86 11.86 0 0 0 5.694 1.448h.005c6.557 0 11.892-5.335 11.895-11.893a11.821 11.821 0 0 0-3.486-8.413Z"/></svg>`;
+  const instagramSvg = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.1" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="17.4" cy="6.7" r="1.1" fill="currentColor"/></svg>`;
+  const tiktokSvg = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14.4 3h2.7c.3 1.9 1.4 3.3 3.2 4v2.8c-1.2-.1-2.4-.5-3.4-1.2v6.1c0 3.8-2.5 6.3-6.1 6.3-3.2 0-5.7-2.5-5.7-5.6 0-3.5 2.7-5.9 6.6-5.7v2.8c-2.3-.2-3.7 1-3.7 2.9 0 1.6 1.2 2.8 2.8 2.8 1.8 0 3-1.3 3-3.5V3h.6Z"/></svg>`;
   const money=n=>new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(Number(n||0));
 
   function injectStyles(){
@@ -23,7 +26,12 @@
       #floatingWa .wa-svg{width:29px;height:29px}
       #modalWa .wa-svg,#footerWa .wa-svg{width:19px;height:19px}
       #modalWa,#footerWa{display:inline-flex;align-items:center;justify-content:center;gap:9px}
-      @media(max-width:600px){.variant-pill{padding:10px 13px;flex:0 0 auto}.variant-pills{gap:7px}}
+      .footer-socials{display:flex;gap:10px;margin-top:16px}
+      .footer-social-link{width:42px;height:42px;border:1px solid rgba(255,255,255,.25);border-radius:50%;display:grid;place-items:center;color:#fff;transition:.2s}
+      .footer-social-link svg{width:20px;height:20px;display:block}
+      .footer-social-link:hover{background:#fff;color:var(--accent-dark);transform:translateY(-2px)}
+      .footer-social-link[aria-disabled="true"]{opacity:.45;cursor:default;pointer-events:none}
+      @media(max-width:600px){.variant-pill{padding:10px 13px;flex:0 0 auto}.variant-pills{gap:7px}.footer-socials{margin-top:14px}}
     `;
     document.head.appendChild(s);
   }
@@ -63,7 +71,21 @@
     [['modalWa','Consultar por WhatsApp'],['footerWa','WhatsApp']].forEach(([id,label])=>{const el=document.getElementById(id);if(!el)return;if(!el.querySelector('.wa-svg'))el.innerHTML=`${whatsappSvg()}<span>${label}</span>`;el.dataset.waIconReady='1';});
   }
 
-  function runAll(){injectStyles();polishVariants(document);addPostalHelp(document);polishWhatsApp();}
+  function addSocialLinks(){
+    const contact=document.querySelector('.footer-grid > div:last-child');
+    if(!contact||contact.querySelector('.footer-socials'))return;
+    const row=document.createElement('div');row.className='footer-socials';
+    const make=(label,href,svg)=>{
+      const a=document.createElement('a');a.className='footer-social-link';a.setAttribute('aria-label',label);a.innerHTML=svg;
+      if(href){a.href=href;a.target='_blank';a.rel='noopener noreferrer';}
+      else{a.href='#';a.setAttribute('aria-disabled','true');a.title=`Falta cargar el link de ${label}`;}
+      return a;
+    };
+    row.append(make('Instagram',String(config.instagramUrl||'').trim(),instagramSvg),make('TikTok',String(config.tiktokUrl||'').trim(),tiktokSvg));
+    contact.appendChild(row);
+  }
+
+  function runAll(){injectStyles();polishVariants(document);addPostalHelp(document);polishWhatsApp();addSocialLinks();}
   runAll();
 
   const modal=document.getElementById('modalInner');
