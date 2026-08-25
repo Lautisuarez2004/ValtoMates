@@ -12,6 +12,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (document.querySelector(`script[${attr}]`)) return;
     const s = document.createElement('script');
     s.src = src;
+    s.async = false;
     s.setAttribute(attr, '1');
     document.body.appendChild(s);
   };
@@ -19,7 +20,9 @@ window.addEventListener('DOMContentLoaded', () => {
   if (/\/admin\.html$/.test(location.pathname)) {
     load('admin-live.js', 'data-admin-live');
     load('admin-commerce.js', 'data-admin-commerce');
+    load('admin-image-editor.js', 'data-admin-image-editor');
   } else {
     load('commerce-polish.js', 'data-commerce-polish');
+    load('product-image-framing.js', 'data-product-image-framing');
   }
 });
