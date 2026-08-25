@@ -2,9 +2,16 @@
   const $ = s => document.querySelector(s);
   const money = n => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 }).format(Number(n || 0));
 
+  function currentOrigin() {
+    return String($('#shippingOriginPostalCode')?.value || '1900').trim().toUpperCase().replace(/\s+/g, '') || '1900';
+  }
+
   function injectTester() {
     const panel = document.querySelector('[data-panel="shipping"] .admin-card');
-    if (!panel || $('#correoTestCard')) return;
+    if (!panel || $('#correoTestCard')) {
+      if ($('#correoOriginCp') && document.activeElement !== $('#correoOriginCp')) $('#correoOriginCp').value = currentOrigin();
+      return;
+    }
 
     const wrap = document.createElement('div');
     wrap.id = 'correoTestCard';
@@ -13,7 +20,7 @@
       <h3 style="margin:0 0 6px">Prueba API · Correo Argentino</h3>
       <p style="color:var(--muted);margin:0 0 16px">Hace una cotización real contra el ambiente QA de MiCorreo sin afectar las tarifas visibles de la tienda.</p>
       <div class="form-grid">
-        <div class="field"><label>CP origen</label><input id="correoOriginCp" value="1900" maxlength="8"></div>
+        <div class="field"><label>CP origen</label><input id="correoOriginCp" value="${currentOrigin()}" maxlength="8"></div>
         <div class="field"><label>CP destino</label><input id="correoDestinationCp" placeholder="Ej: 1425" maxlength="8"></div>
         <div class="field"><label>Peso (gramos)</label><input id="correoWeight" type="number" min="1" max="25000" value="1000"></div>
         <div class="field"><label>Alto (cm)</label><input id="correoHeight" type="number" min="1" max="150" value="20"></div>
@@ -76,6 +83,11 @@
   }
 
   injectTester();
+  document.addEventListener('input', event => {
+    if (event.target?.id === 'shippingOriginPostalCode' && $('#correoOriginCp') && document.activeElement !== $('#correoOriginCp')) {
+      $('#correoOriginCp').value = currentOrigin();
+    }
+  });
   document.addEventListener('click', event => {
     const tab = event.target.closest?.('.admin-nav button');
     if (tab?.dataset?.tab === 'shipping') setTimeout(injectTester, 0);
