@@ -53,7 +53,7 @@
           <div class="field full">
             <label>Nuevo email</label>
             <input id="accountNewEmail" type="email" autocomplete="email" placeholder="nuevo@email.com">
-            <small style="display:block;color:var(--muted);margin-top:6px">Si Supabase exige confirmación, vas a recibir un correo antes de que el cambio quede activo.</small>
+            <small style="display:block;color:var(--muted);margin-top:6px">El cambio se aplica directamente. La próxima vez ingresás con este nuevo email.</small>
           </div>
         </div>
         <div class="admin-actions"><button class="btn btn-dark" id="saveAccountEmail">Cambiar email</button></div>
@@ -125,19 +125,27 @@
   async function changeEmail() {
     const button = $('#saveAccountEmail');
     const newEmail = String($('#accountNewEmail')?.value || '').trim().toLowerCase();
+    const currentPassword = $('#accountCurrentPassword')?.value || '';
     if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) return toast('Escribí un email válido.');
 
     setBusy(button, true, 'Cambiar email', 'Actualizando...');
     try {
       const user = await reauthenticate();
       if (String(user.email || '').toLowerCase() === newEmail) throw new Error('Ese ya es tu email actual.');
-      const { data, error } = await sb.auth.updateUser({ email: newEmail });
-      if (error) throw error;
+
+      const { data, error } = await sb.functions.invoke('valto-admin-account', {
+        body: { action: 'change_email', email: newEmail }
+      });
+      if (error) throw new Error(data?.error || error.message || 'No se pudo cambiar el email.');
+      if (!data?.ok) throw new Error(data?.error || 'No se pudo cambiar el email.');
+
+      const { error: loginError } = await sb.auth.signInWithPassword({ email: newEmail, password: currentPassword });
+      if (loginError) console.warn('El email se cambió, pero la sesión no pudo refrescarse automáticamente.', loginError);
+
       $('#accountCurrentPassword').value = '';
       $('#accountNewEmail').value = '';
-      const pending = data?.user?.new_email || data?.user?.email !== newEmail;
-      toast(pending ? 'Revisá tu correo para confirmar el nuevo email.' : 'Email actualizado correctamente.', 4200);
-      await loadAccount();
+      if ($('#accountCurrentEmail')) $('#accountCurrentEmail').value = data.email || newEmail;
+      toast('Email actualizado. Desde ahora ingresás con el nuevo email.', 4200);
     } catch (error) {
       console.error('email update', error);
       toast(error?.message || 'No se pudo cambiar el email.', 4200);
