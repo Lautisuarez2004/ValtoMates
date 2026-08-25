@@ -13,8 +13,6 @@
       .variant-pill:hover{background:rgba(74,75,55,.08)}
       .variant-pill.active{background:var(--accent);color:#fff;border-color:var(--accent)}
       .postal-help-link{display:inline-block;margin-top:7px;font-size:12px;color:var(--accent);text-decoration:underline;text-underline-offset:3px}
-      .quick-cart:not(:disabled){font-size:0}
-      .quick-cart:not(:disabled)::after{content:'Agregar al carrito';font-size:13px;font-weight:700;line-height:1.2}
       .wa-mini{display:none!important}
       .product-actions{grid-template-columns:1fr!important}
       #mailBtn{display:none!important}
@@ -61,12 +59,16 @@
   }
 
   function polishWhatsApp(){
-    document.querySelectorAll('.wa-mini').forEach(el=>el.remove());
     ['headerWa','floatingWa'].forEach(id=>{const el=document.getElementById(id);if(!el)return;if(!el.querySelector('.wa-svg'))el.innerHTML=whatsappSvg();el.dataset.waIconReady='1';});
     [['modalWa','Consultar por WhatsApp'],['footerWa','WhatsApp']].forEach(([id,label])=>{const el=document.getElementById(id);if(!el)return;if(!el.querySelector('.wa-svg'))el.innerHTML=`${whatsappSvg()}<span>${label}</span>`;el.dataset.waIconReady='1';});
   }
 
-  function run(root=document){injectStyles();polishVariants(root);addPostalHelp(root);polishWhatsApp();}
-  run();
-  new MutationObserver(records=>records.forEach(r=>r.addedNodes.forEach(n=>{if(n.nodeType===1)run(n)}))).observe(document.body,{childList:true,subtree:true});
+  function runAll(){injectStyles();polishVariants(document);addPostalHelp(document);polishWhatsApp();}
+  runAll();
+
+  const modal=document.getElementById('modalInner');
+  if(modal)new MutationObserver(()=>{polishVariants(modal);addPostalHelp(modal);polishWhatsApp();}).observe(modal,{childList:true,subtree:true});
+
+  const cart=document.getElementById('cartSummary');
+  if(cart)new MutationObserver(()=>addPostalHelp(cart)).observe(cart,{childList:true,subtree:true});
 })();
