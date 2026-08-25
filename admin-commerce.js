@@ -24,6 +24,15 @@
     }
     const orders=document.querySelector('[data-panel="orders"] h2');if(orders)orders.textContent='Ventas';
     const ordersCopy=document.querySelector('[data-panel="orders"] p');if(ordersCopy)ordersCopy.textContent='Órdenes de Mercado Pago, transferencia, efectivo y pagos a coordinar.';
+
+    const backupTab=document.querySelector('.admin-nav button[data-tab="data"]');
+    if(backupTab)backupTab.textContent='Copias de seguridad';
+    const backupPanel=document.querySelector('[data-panel="data"] .admin-card');
+    if(backupPanel){
+      const title=backupPanel.querySelector('h2');if(title)title.textContent='Copias de seguridad';
+      const copy=backupPanel.querySelector('p');if(copy)copy.textContent='Descargá una copia de seguridad de los datos principales de tu tienda para conservar un respaldo.';
+      const exportBtn=backupPanel.querySelector('#exportData');if(exportBtn)exportBtn.textContent='Descargar copia de seguridad';
+    }
   }
 
   async function loadSettings(){
