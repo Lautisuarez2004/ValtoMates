@@ -3,7 +3,7 @@
   if(!window.supabase||!config.supabaseUrl||!config.supabaseAnonKey)return;
   const sb=window.supabase.createClient(config.supabaseUrl,config.supabaseAnonKey,{auth:{persistSession:true}});
   const $=s=>document.querySelector(s);
-  const esc=(s='')=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc=(s='')=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   const fmt=n=>new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(Number(n||0));
   const toast=msg=>{const t=$('#toast');if(!t)return;t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)};
 
@@ -14,13 +14,15 @@
       $('#shippingBaseCost')?.closest('.field')?.classList.add('hidden');
       grid?.insertAdjacentHTML('beforeend',`
         <div class="field"><label>Proveedor de envío</label><input value="Correo Argentino" disabled></div>
-        <div class="field"><label>Correo Argentino · Retiro por sucursal</label><input id="shippingBranchCost" type="number" min="0" step="1"></div>
-        <div class="field"><label>Correo Argentino · Envío a domicilio</label><input id="shippingHomeCost" type="number" min="0" step="1"></div>
+        <div class="field"><label>CP de origen</label><input id="shippingOriginPostalCode" maxlength="8" placeholder="Ej: 1900"><small style="display:block;color:var(--muted);margin-top:5px">Código postal desde donde se despachan los pedidos.</small></div>
+        <div class="field full"><label><input id="shippingDynamicQuoteEnabled" type="checkbox"> Cotizar automáticamente con la API de Correo Argentino</label><small style="display:block;color:var(--muted);margin-top:5px">Si la API todavía no está disponible o faltan medidas, el checkout usa las tarifas manuales de respaldo.</small></div>
+        <div class="field"><label>Tarifa de respaldo · Retiro por sucursal</label><input id="shippingBranchCost" type="number" min="0" step="1"></div>
+        <div class="field"><label>Tarifa de respaldo · Envío a domicilio</label><input id="shippingHomeCost" type="number" min="0" step="1"></div>
         <div class="field"><label>Descuento transferencia (%)</label><input id="transferDiscountPct" type="number" min="0" max="100" step="0.1"></div>
         <div class="field"><label>Descuento efectivo (%)</label><input id="cashDiscountPct" type="number" min="0" max="100" step="0.1"></div>
         <div class="field full"><label>Plazo mostrado de Correo Argentino</label><input id="shippingEtaText" placeholder="3 a 6 días hábiles..."></div>
       `);
-      const p=panel.querySelector('p');if(p)p.innerHTML='Valto usa <b>Correo Argentino</b>. Estas tarifas son editables y funcionan como cotización manual hasta conectar las credenciales/API del correo.';
+      const p=panel.querySelector('p');if(p)p.innerHTML='Valto usa <b>Correo Argentino</b>. Cuando la integración está disponible el checkout cotiza por código postal, peso y medidas. Las tarifas manuales quedan como respaldo.';
     }
     const orders=document.querySelector('[data-panel="orders"] h2');if(orders)orders.textContent='Ventas';
     const ordersCopy=document.querySelector('[data-panel="orders"] p');if(ordersCopy)ordersCopy.textContent='Órdenes de Mercado Pago, transferencia, efectivo y pagos a coordinar.';
@@ -44,6 +46,8 @@
     if($('#installmentsInterestFree'))$('#installmentsInterestFree').checked=s.installments_interest_free!==false;
     if($('#shippingFreeFrom'))$('#shippingFreeFrom').value=Number(s.shipping_free_from||0);
     if($('#shippingDispatchText'))$('#shippingDispatchText').value=s.shipping_dispatch_text||'Hola! una vez abonado tu pedido va a ser despachado entre 1-3 días hábiles';
+    if($('#shippingOriginPostalCode'))$('#shippingOriginPostalCode').value=s.shipping_origin_postal_code||'1900';
+    if($('#shippingDynamicQuoteEnabled'))$('#shippingDynamicQuoteEnabled').checked=s.shipping_dynamic_quote_enabled!==false;
     if($('#shippingBranchCost'))$('#shippingBranchCost').value=Number(s.shipping_branch_cost||0);
     if($('#shippingHomeCost'))$('#shippingHomeCost').value=Number(s.shipping_home_cost||0);
     if($('#transferDiscountPct'))$('#transferDiscountPct').value=Number(s.transfer_discount_pct||23);
@@ -66,7 +70,9 @@
   async function saveSettings(){
     const transferPct=Math.max(0,Math.min(100,Number($('#transferDiscountPct')?.value||0)));
     const cashPct=Math.max(0,Math.min(100,Number($('#cashDiscountPct')?.value||0)));
-    const payload={id:'default',installments_count:Math.max(1,Math.min(24,Math.floor(Number($('#installmentsCount')?.value||3)))),installments_interest_free:!!$('#installmentsInterestFree')?.checked,shipping_enabled:true,shipping_base_cost:0,shipping_free_from:Math.max(0,Number($('#shippingFreeFrom')?.value||0)),shipping_dispatch_text:String($('#shippingDispatchText')?.value||'').trim()||'Hola! una vez abonado tu pedido va a ser despachado entre 1-3 días hábiles',shipping_provider:'correo_argentino',shipping_branch_cost:Math.max(0,Number($('#shippingBranchCost')?.value||0)),shipping_home_cost:Math.max(0,Number($('#shippingHomeCost')?.value||0)),transfer_discount_pct:transferPct,cash_discount_pct:cashPct,shipping_eta_text:String($('#shippingEtaText')?.value||'').trim()||'3 a 6 días hábiles, según el origen y el destino. Luego de ser despachado.',allow_shipping_coordination:true,allow_transfer:true,allow_cash:true,allow_seller_agreement:true,allow_mercadopago:true,updated_at:new Date().toISOString()};
+    const origin=String($('#shippingOriginPostalCode')?.value||'').toUpperCase().replace(/\s+/g,'').trim();
+    if(!/^[A-Z0-9]{4,8}$/.test(origin)){toast('Ingresá un CP de origen válido');return;}
+    const payload={id:'default',installments_count:Math.max(1,Math.min(24,Math.floor(Number($('#installmentsCount')?.value||3)))),installments_interest_free:!!$('#installmentsInterestFree')?.checked,shipping_enabled:true,shipping_base_cost:0,shipping_free_from:Math.max(0,Number($('#shippingFreeFrom')?.value||0)),shipping_dispatch_text:String($('#shippingDispatchText')?.value||'').trim()||'Hola! una vez abonado tu pedido va a ser despachado entre 1-3 días hábiles',shipping_provider:'correo_argentino',shipping_origin_postal_code:origin,shipping_dynamic_quote_enabled:!!$('#shippingDynamicQuoteEnabled')?.checked,shipping_branch_cost:Math.max(0,Number($('#shippingBranchCost')?.value||0)),shipping_home_cost:Math.max(0,Number($('#shippingHomeCost')?.value||0)),transfer_discount_pct:transferPct,cash_discount_pct:cashPct,shipping_eta_text:String($('#shippingEtaText')?.value||'').trim()||'3 a 6 días hábiles, según el origen y el destino. Luego de ser despachado.',allow_shipping_coordination:true,allow_transfer:true,allow_cash:true,allow_seller_agreement:true,allow_mercadopago:true,updated_at:new Date().toISOString()};
     const {error}=await sb.from('valto_commerce_settings').upsert(payload,{onConflict:'id'});
     if(error){console.error(error);toast('No se pudo guardar la configuración');return;}
     try{await syncProductDiscountPrices(transferPct,cashPct);}catch(e){console.error(e);toast('Se guardó la configuración, pero no se pudieron recalcular algunos precios.');return;}
