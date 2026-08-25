@@ -6,6 +6,7 @@ const COMMERCE_URL = `${SUPABASE_URL}/functions/v1/valto-commerce`;
 const publicHeaders = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
 
 type RequestedItem = { productId: string; quantity: number; variant: string };
+type DynamicShippingQuote = { cost: number; source: string } | null;
 
 async function getProduct(productId: string) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/valto_products?id=eq.${encodeURIComponent(productId)}&visible=eq.true&select=*`, { headers: publicHeaders, cache: 'no-store' });
@@ -30,12 +31,39 @@ function normalizeItems(payload: any): RequestedItem[] {
   return raw.map((item: any) => ({ productId: String(item?.productId || ''), quantity: Number(item?.quantity ?? 1), variant: String(item?.variant || '').trim() }));
 }
 
-function shippingCostFor(settings: any, method: string, subtotal: number) {
+function shippingCostFor(settings: any, method: string, subtotal: number, dynamicCost: number | null = null) {
   const freeFrom = Math.max(0, Number(settings.shipping_free_from || 0));
   if (freeFrom > 0 && subtotal >= freeFrom) return 0;
+  if ((method === 'correo_sucursal' || method === 'correo_domicilio') && dynamicCost != null && Number.isFinite(dynamicCost)) {
+    return Math.max(0, dynamicCost);
+  }
   if (method === 'correo_sucursal') return Math.max(0, Number(settings.shipping_branch_cost || 0));
   if (method === 'correo_domicilio') return Math.max(0, Number(settings.shipping_home_cost || 0));
   return 0;
+}
+
+async function getDynamicShippingQuote(req: Request, requested: RequestedItem[], postalCode: string, shippingMethod: string): Promise<DynamicShippingQuote> {
+  if (!['correo_sucursal', 'correo_domicilio'].includes(shippingMethod)) return null;
+  try {
+    const origin = new URL(req.url).origin;
+    const response = await fetch(`${origin}/api/correo-checkout-quote`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items: requested.map(item => ({ productId: item.productId, quantity: item.quantity })),
+        postalCodeDestination: postalCode
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data?.available) return null;
+    const rate = shippingMethod === 'correo_sucursal' ? data.branch : data.home;
+    const cost = Number(rate?.price);
+    if (!Number.isFinite(cost) || cost < 0) return null;
+    return { cost, source: String(data.source || 'correo_argentino_api') };
+  } catch (error) {
+    console.error('Dynamic Correo quote unavailable', error);
+    return null;
+  }
 }
 
 export default async (req: Request) => {
@@ -75,7 +103,9 @@ export default async (req: Request) => {
       mpItems.push({ id: `${product.id}::${item.variant}`, title: item.variant ? `${product.name} - ${item.variant}` : product.name, quantity: qty, unit_price: unitPrice, currency_id: 'ARS' });
     }
 
-    const shippingCost = shippingCostFor(settings, shippingMethod, subtotal);
+    const dynamicQuote = await getDynamicShippingQuote(req, requested, postalCode, shippingMethod);
+    const shippingCost = shippingCostFor(settings, shippingMethod, subtotal, dynamicQuote?.cost ?? null);
+    const shippingQuoteSource = dynamicQuote?.source || 'manual_fallback';
     const installments = Math.min(24, Math.max(1, Math.floor(Number(settings.installments_count || 3))));
     const origin = new URL(req.url).origin;
     const orderId = crypto.randomUUID();
@@ -84,21 +114,32 @@ export default async (req: Request) => {
       items: mpItems,
       payer: { email },
       external_reference: orderId,
-      metadata: { source: 'valto', valto_order_id: orderId, postal_code: postalCode, shipping_method: shippingMethod },
+      metadata: { source: 'valto', valto_order_id: orderId, postal_code: postalCode, shipping_method: shippingMethod, shipping_quote_source: shippingQuoteSource },
       notification_url: `${origin}/api/mercadopago-webhook`,
       back_urls: { success: `${origin}/?payment=success`, pending: `${origin}/?payment=pending`, failure: `${origin}/?payment=failure` },
       auto_return: 'approved',
       payment_methods: { installments },
       statement_descriptor: 'VALTO MATES'
     };
-    if (shippingMethod !== 'coordinar') preference.shipments = { cost: shippingCost, mode: 'not_specified' };
-    else preference.shipments = { cost: 0, mode: 'not_specified' };
+    preference.shipments = { cost: shippingMethod === 'coordinar' ? 0 : shippingCost, mode: 'not_specified' };
 
     const mp = await fetch('https://api.mercadopago.com/checkout/preferences', { method: 'POST', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify(preference) });
     const data = await mp.json();
     if (!mp.ok) return Response.json({ error: data?.message || 'No se pudo iniciar el pago.' }, { status: 502 });
 
-    const reg = await fetch(COMMERCE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'register_preference', accessToken, preferenceId: data.id, orderId, checkout: { ...checkout, email, postalCode, shippingMethod, paymentMethod: 'mercadopago' } }) });
+    const reg = await fetch(COMMERCE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'register_preference',
+        accessToken,
+        preferenceId: data.id,
+        orderId,
+        shippingCostOverride: dynamicQuote?.cost ?? null,
+        shippingQuoteSource,
+        checkout: { ...checkout, email, postalCode, shippingMethod, paymentMethod: 'mercadopago' }
+      })
+    });
     const regData = await reg.json().catch(() => ({}));
     if (!reg.ok) {
       console.error('Valto order registration failed', regData);
@@ -109,7 +150,7 @@ export default async (req: Request) => {
     const isDev = host.startsWith('dev--') || host.includes('localhost');
     const checkoutUrl = isDev ? (data.sandbox_init_point || data.init_point) : data.init_point;
     if (!checkoutUrl) return Response.json({ error: 'Mercado Pago no devolvió una URL de checkout.' }, { status: 502 });
-    return Response.json({ checkoutUrl, orderId, subtotal, shippingCost, total: subtotal + shippingCost });
+    return Response.json({ checkoutUrl, orderId, subtotal, shippingCost, shippingQuoteSource, total: subtotal + shippingCost });
   } catch (e) {
     console.error(e);
     return Response.json({ error: e instanceof Error ? e.message : 'No se pudo iniciar el pago.' }, { status: 500 });
