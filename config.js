@@ -20,6 +20,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (/\/admin\.html$/.test(location.pathname)) {
     load('admin-live.js', 'data-admin-live');
     load('admin-commerce.js', 'data-admin-commerce');
+    load('admin-correo-test.js', 'data-admin-correo-test');
     load('admin-image-editor.js', 'data-admin-image-editor');
     load('admin-contact.js', 'data-admin-contact');
   } else {
