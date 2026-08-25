@@ -107,7 +107,7 @@
       if(!btn){ btn=document.createElement('button');btn.className='btn btn-outline quick-cart'; const actions=body.querySelector('.product-actions'); actions?.insertAdjacentElement('beforebegin',btn); }
       const disabled = Number(p.stock||0)<=0;
       if(btn.disabled !== disabled) btn.disabled = disabled;
-      const label = disabled?'Sin stock':variants(p).length?`Elegir ${String(p.variantLabel||'opción').toLowerCase()} y agregar`:'Agregar al carrito';
+      const label = disabled ? 'Sin stock' : 'Agregar al carrito';
       if(btn.textContent !== label) btn.textContent = label;
       btn.onclick=(e)=>{e.stopPropagation(); if(variants(p).length){trigger?.click();}else addToCart(p.id,'',1);};
     });
